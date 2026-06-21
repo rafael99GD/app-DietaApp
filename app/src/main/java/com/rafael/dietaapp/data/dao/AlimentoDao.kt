@@ -9,6 +9,9 @@ interface AlimentoDao {
     @Query("SELECT * FROM alimentos ORDER BY nombre ASC")
     fun obtenerTodos(): Flow<List<Alimento>>
 
+    @Query("SELECT * FROM alimentos ORDER BY nombre ASC")
+    suspend fun obtenerTodosSync(): List<Alimento>
+
     @Query("SELECT * FROM alimentos WHERE id = :id")
     suspend fun obtenerPorId(id: Long): Alimento?
 

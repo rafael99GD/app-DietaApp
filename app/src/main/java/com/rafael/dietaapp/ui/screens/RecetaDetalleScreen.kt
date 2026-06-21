@@ -7,10 +7,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rafael.dietaapp.data.model.LineaAlimento
@@ -18,6 +21,7 @@ import com.rafael.dietaapp.data.model.RecetaDetallada
 import com.rafael.dietaapp.data.repository.DietaRepository
 import com.rafael.dietaapp.ui.components.ResumenNutrientesCard
 import com.rafael.dietaapp.ui.components.formato
+import com.rafael.dietaapp.util.ExportUtils
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,8 +29,10 @@ import kotlinx.coroutines.launch
 fun RecetaDetalleScreen(
     recetaId: Long,
     repository: DietaRepository,
-    onVolver: () -> Unit
+    onVolver: () -> Unit,
+    onEditarReceta: (Long) -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val detalle by repository.obtenerRecetaDetallada(recetaId).collectAsState(
         initial = RecetaDetallada(com.rafael.dietaapp.data.entities.Receta(nombre = ""), emptyList())
@@ -42,6 +48,16 @@ fun RecetaDetalleScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        onEditarReceta(recetaId)
+                    }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar receta")
+                    }
+                    IconButton(onClick = {
+                        ExportUtils.compartirReceta(context, detalle)
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Compartir")
+                    }
                     IconButton(onClick = {
                         scope.launch {
                             repository.eliminarReceta(detalle.receta)
@@ -62,6 +78,22 @@ fun RecetaDetalleScreen(
             item {
                 ResumenNutrientesCard(totales = detalle.totales, titulo = "Total de la receta")
             }
+
+            if (detalle.receta.notas.isNotBlank()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Preparación / Notas", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(4.dp))
+                            Text(detalle.receta.notas, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+
             item {
                 Text("Ingredientes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }

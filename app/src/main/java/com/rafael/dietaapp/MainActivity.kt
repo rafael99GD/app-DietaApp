@@ -7,8 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.rafael.dietaapp.navigation.AppNavGraph
 import com.rafael.dietaapp.ui.theme.DietaAppTheme
+import com.rafael.dietaapp.util.ImportUtils
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -16,6 +19,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val repository = (application as DietaApplication).repository
+
+        intent?.data?.let { uri ->
+            lifecycleScope.launch {
+                ImportUtils.importarDesdeUri(this@MainActivity, uri, repository)
+            }
+        }
 
         setContent {
             DietaAppTheme {

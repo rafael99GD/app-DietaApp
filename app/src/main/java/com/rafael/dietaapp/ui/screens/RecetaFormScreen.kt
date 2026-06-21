@@ -28,6 +28,7 @@ private data class IngredienteTemporal(val alimento: Alimento, val gramos: Doubl
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecetaFormScreen(
+    recetaId: Long? = null,
     repository: DietaRepository,
     onVolver: () -> Unit
 ) {
@@ -36,31 +37,79 @@ fun RecetaFormScreen(
     var nombre by remember { mutableStateOf("") }
     var emoji by remember { mutableStateOf("📖") }
     var imagenUri by remember { mutableStateOf<String?>(null) }
+    var notas by remember { mutableStateOf("") }
     var ingredientes by remember { mutableStateOf(listOf<IngredienteTemporal>()) }
     var mostrarSelector by remember { mutableStateOf(false) }
+
+    LaunchedEffect(recetaId) {
+        if (recetaId != null) {
+            val receta = repository.obtenerReceta(recetaId)
+            if (receta != null) {
+                nombre = receta.nombre
+                emoji = receta.emoji
+                imagenUri = receta.fotoUri
+                notas = receta.notas
+            }
+            // Cargar ingredientes
+            repository.obtenerRecetaDetallada(recetaId).collect { detalle ->
+                ingredientes = detalle.ingredientes.map { IngredienteTemporal(it.alimento, it.gramos) }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nueva receta") },
+                title = { Text(if (recetaId == null) "Nueva receta" else "Editar receta") },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                actions = {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                if (recetaId == null) {
+                                    repository.crearReceta(
+                                        nombre = nombre.trim(),
+                                        fotoUri = imagenUri,
+                                        emoji = emoji,
+                                        notas = notas.trim(),
+                                        ingredientes = ingredientes.map { it.alimento.id to it.gramos }
+                                    )
+                                } else {
+                                    repository.actualizarRecetaCompleta(
+                                        id = recetaId,
+                                        nombre = nombre.trim(),
+                                        fotoUri = imagenUri,
+                                        emoji = emoji,
+                                        notas = notas.trim(),
+                                        ingredientes = ingredientes.map { it.alimento.id to it.gramos }
+                                    )
+                                }
+                                onVolver()
+                            }
+                        },
+                        enabled = nombre.isNotBlank() && ingredientes.isNotEmpty(),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Guardar")
                     }
                 }
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            FloatingActionButton(
                 onClick = { mostrarSelector = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Añadir ingrediente") }
-            )
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Añadir ingrediente")
+            }
         }
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             LazyColumn(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -81,6 +130,16 @@ fun RecetaFormScreen(
                         label = { Text("Nombre de la receta") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                item {
+                    OutlinedTextField(
+                        value = notas,
+                        onValueChange = { notas = it },
+                        label = { Text("Notas / Preparación") },
+                        placeholder = { Text("Escribe aquí los pasos de la receta...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
                     )
                 }
                 item {
@@ -116,24 +175,6 @@ fun RecetaFormScreen(
                     }
                 }
                 item { Spacer(Modifier.height(80.dp)) }
-            }
-
-            Button(
-                onClick = {
-                    scope.launch {
-                        repository.crearReceta(
-                            nombre = nombre.trim(),
-                            fotoUri = imagenUri,
-                            emoji = emoji,
-                            ingredientes = ingredientes.map { it.alimento.id to it.gramos }
-                        )
-                        onVolver()
-                    }
-                },
-                enabled = nombre.isNotBlank() && ingredientes.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
-            ) {
-                Text("Guardar receta")
             }
         }
     }

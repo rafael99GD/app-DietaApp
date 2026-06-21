@@ -9,18 +9,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.rafael.dietaapp.data.entities.Alimento
 import com.rafael.dietaapp.data.repository.DietaRepository
 import com.rafael.dietaapp.ui.components.formato
+import com.rafael.dietaapp.util.ExportUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +33,7 @@ fun AlimentosScreen(
     onEditarAlimento: (Long) -> Unit,
     onNuevoAlimento: () -> Unit
 ) {
+    val context = LocalContext.current
     var busqueda by remember { mutableStateOf("") }
     val alimentos by if (busqueda.isBlank()) {
         repository.obtenerAlimentos().collectAsState(initial = emptyList())
@@ -80,7 +84,11 @@ fun AlimentosScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(alimentos, key = { it.id }) { alimento ->
-                        TarjetaAlimento(alimento, onClick = { onEditarAlimento(alimento.id) })
+                        TarjetaAlimento(
+                            alimento = alimento, 
+                            onClick = { onEditarAlimento(alimento.id) },
+                            onShare = { ExportUtils.compartirAlimento(context, alimento) }
+                        )
                     }
                     item { Spacer(Modifier.height(80.dp)) }
                 }
@@ -90,7 +98,7 @@ fun AlimentosScreen(
 }
 
 @Composable
-fun TarjetaAlimento(alimento: Alimento, onClick: () -> Unit) {
+fun TarjetaAlimento(alimento: Alimento, onClick: () -> Unit, onShare: () -> Unit) {
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
         Row(
             Modifier.padding(12.dp).fillMaxWidth(),
@@ -119,6 +127,9 @@ fun TarjetaAlimento(alimento: Alimento, onClick: () -> Unit) {
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            IconButton(onClick = onShare) {
+                Icon(Icons.Default.Share, contentDescription = "Compartir")
             }
         }
     }

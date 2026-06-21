@@ -37,6 +37,8 @@ class DietaRepository(
 
     fun obtenerAlimentos(): Flow<List<Alimento>> = alimentoDao.obtenerTodos()
 
+    suspend fun obtenerAlimentosUnaVez(): List<Alimento> = alimentoDao.obtenerTodosSync()
+
     fun buscarAlimentos(query: String): Flow<List<Alimento>> = alimentoDao.buscar(query)
 
     suspend fun obtenerAlimento(id: Long): Alimento? = alimentoDao.obtenerPorId(id)
@@ -204,8 +206,8 @@ class DietaRepository(
      * Crea una receta nueva a partir de los ingredientes indicados (gramos por alimento).
      * Se usa tanto desde "guardar comida como receta" como desde la creación manual de recetas.
      */
-    suspend fun crearReceta(nombre: String, fotoUri: String?, emoji: String, ingredientes: List<Pair<Long, Double>>): Long {
-        val recetaId = recetaDao.insertar(Receta(nombre = nombre, fotoUri = fotoUri, emoji = emoji))
+    suspend fun crearReceta(nombre: String, fotoUri: String?, emoji: String, notas: String = "", ingredientes: List<Pair<Long, Double>>): Long {
+        val recetaId = recetaDao.insertar(Receta(nombre = nombre, fotoUri = fotoUri, emoji = emoji, notas = notas))
         ingredientes.forEach { (alimentoId, gramos) ->
             recetaDao.insertarIngrediente(RecetaAlimento(recetaId = recetaId, alimentoId = alimentoId, gramos = gramos))
         }
@@ -213,6 +215,14 @@ class DietaRepository(
     }
 
     suspend fun eliminarReceta(receta: Receta) = recetaDao.eliminar(receta)
+
+    suspend fun actualizarRecetaCompleta(id: Long, nombre: String, fotoUri: String?, emoji: String, notas: String, ingredientes: List<Pair<Long, Double>>) {
+        recetaDao.actualizar(Receta(id = id, nombre = nombre, fotoUri = fotoUri, emoji = emoji, notas = notas))
+        recetaDao.eliminarTodosLosIngredientes(id)
+        ingredientes.forEach { (alimentoId, gramos) ->
+            recetaDao.insertarIngrediente(RecetaAlimento(recetaId = id, alimentoId = alimentoId, gramos = gramos))
+        }
+    }
 
     /**
      * Genera una receta a partir de una comida ya existente: copia todas sus líneas de alimento

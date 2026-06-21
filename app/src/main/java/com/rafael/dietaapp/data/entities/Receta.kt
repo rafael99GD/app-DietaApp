@@ -15,5 +15,6 @@ data class Receta(
     val nombre: String,
     val fotoUri: String? = null,
     val emoji: String = "📖",
-    val fechaCreacion: Long = System.currentTimeMillis()
+    val fechaCreacion: Long = System.currentTimeMillis(),
+    val notas: String = "" // Explicación del método de preparación o notas adicionales
 )

@@ -80,12 +80,22 @@ fun AppNavGraph(repository: DietaRepository) {
             RecetaDetalleScreen(
                 recetaId = recetaId,
                 repository = repository,
-                onVolver = { navController.popBackStack() }
+                onVolver = { navController.popBackStack() },
+                onEditarReceta = { id -> navController.navigate(Rutas.recetaForm(id)) }
             )
         }
 
-        composable(Rutas.RECETA_FORM) {
+        composable(
+            route = Rutas.RECETA_FORM,
+            arguments = listOf(navArgument("id") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
+            val idStr = backStackEntry.arguments?.getString("id")
             RecetaFormScreen(
+                recetaId = idStr?.toLongOrNull(),
                 repository = repository,
                 onVolver = { navController.popBackStack() }
             )
