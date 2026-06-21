@@ -58,6 +58,12 @@ class DietaRepository(
 
     fun obtenerDiasConDatos(): Flow<List<Dia>> = diaDao.obtenerTodos()
 
+    fun obtenerDia(fecha: String): Flow<Dia?> = kotlinx.coroutines.flow.flow {
+        emit(diaDao.obtenerPorFecha(fecha))
+    }
+
+    suspend fun actualizarDia(dia: Dia) = diaDao.actualizar(dia)
+
     /** Conjunto de fechas (yyyy-MM-dd) que tienen al menos un dato registrado, para marcar el calendario. */
     fun obtenerFechasConDatos(): Flow<Set<String>> =
         diaDao.obtenerTodos().map { dias -> dias.map { it.fecha }.toSet() }
@@ -65,6 +71,7 @@ class DietaRepository(
     /** Devuelve el día completo: comidas (con sus líneas resueltas) + extras, como Flow reactivo. */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun obtenerDiaDetallado(fecha: String): Flow<DiaDetallado> {
+        val diaFlow = diaDao.obtenerPorFechaFlow(fecha).map { it ?: Dia(fecha) }
         val comidasFlow = comidaDao.obtenerComidasDelDia(fecha)
         val extrasFlow = extraDao.obtenerExtrasDelDia(fecha)
 
@@ -77,8 +84,13 @@ class DietaRepository(
             }
         }
 
-        return combine(comidasDetalladasFlow, extrasFlow) { comidasDetalladas, extras ->
-            DiaDetallado(fecha = fecha, comidas = comidasDetalladas, extras = extras)
+        return combine(comidasDetalladasFlow, extrasFlow, diaFlow) { comidasDetalladas, extras, dia ->
+            DiaDetallado(
+                fecha = fecha,
+                comidas = comidasDetalladas,
+                extras = extras,
+                agua = dia.agua
+            )
         }
     }
 

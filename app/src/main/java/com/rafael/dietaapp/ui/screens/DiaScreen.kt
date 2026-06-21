@@ -12,8 +12,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rafael.dietaapp.DietaApplication
 import com.rafael.dietaapp.data.entities.Extra
 import com.rafael.dietaapp.data.model.ComidaDetallada
 import com.rafael.dietaapp.data.repository.DietaRepository
@@ -22,6 +25,10 @@ import com.rafael.dietaapp.ui.components.SelectorCalendarioDialog
 import com.rafael.dietaapp.ui.components.formato
 import com.rafael.dietaapp.util.FechaUtils
 import kotlinx.coroutines.launch
+import android.content.Intent
+
+import androidx.compose.ui.res.painterResource
+import com.rafael.dietaapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,8 +39,13 @@ fun DiaScreen(
     onIrAAlimentos: () -> Unit,
     onIrARecetas: () -> Unit,
     onIrAExtra: (Long?) -> Unit,
+    onIrAPerfil: () -> Unit,
     onCambiarFecha: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    val app = context.applicationContext as DietaApplication
+    val userPrefs = app.userPreferences
+
     val scope = rememberCoroutineScope()
     val diaDetallado by repository.obtenerDiaDetallado(fecha).collectAsState(
         initial = com.rafael.dietaapp.data.model.DiaDetallado(fecha, emptyList(), emptyList())
@@ -46,18 +58,53 @@ fun DiaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mi Dieta") },
-                actions = {
-                    if (!FechaUtils.esHoy(fecha)) {
-                        TextButton(onClick = { onCambiarFecha(FechaUtils.hoy()) }) {
-                            Text("Hoy")
-                        }
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Icono de la app (Logo)
+                        Icon(
+                            painter = painterResource(id = R.drawable.logo_dieta), // Usa logo_dieta.xml por ahora
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = Color.Unspecified
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text("Mi Dieta", fontWeight = FontWeight.ExtraBold)
                     }
+                },
+                actions = {
                     IconButton(onClick = onIrAAlimentos) {
                         Icon(Icons.Default.Restaurant, contentDescription = "Alimentos")
                     }
                     IconButton(onClick = onIrARecetas) {
                         Icon(Icons.Default.MenuBook, contentDescription = "Recetas")
+                    }
+                    IconButton(onClick = {
+                        val shareText = StringBuilder()
+                        shareText.append("Resumen de mi dieta - ${FechaUtils.formatoLegible(fecha)}\n\n")
+                        shareText.append("Total: ${diaDetallado.totalDia.kcal.formato()} kcal\n")
+                        shareText.append("Proteínas: ${diaDetallado.totalDia.proteinas.formato()}g\n")
+                        shareText.append("Carbohidratos: ${diaDetallado.totalDia.hidratos.formato()}g\n")
+                        shareText.append("Grasas: ${diaDetallado.totalDia.grasas.formato()}g\n\n")
+                        
+                        if (diaDetallado.comidas.isNotEmpty()) {
+                            shareText.append("Comidas:\n")
+                            diaDetallado.comidas.forEach { 
+                                shareText.append("- ${it.comida.nombre}: ${it.totales.kcal.formato()} kcal\n")
+                            }
+                        }
+                        
+                        val sendIntent: Intent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, shareText.toString())
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, null)
+                        context.startActivity(shareIntent)
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Compartir")
+                    }
+                    IconButton(onClick = onIrAPerfil) {
+                        Icon(Icons.Default.Settings, contentDescription = "Perfil")
                     }
                 }
             )
@@ -123,7 +170,23 @@ fun DiaScreen(
                 item {
                     ResumenNutrientesCard(
                         totales = diaDetallado.totalDia,
-                        titulo = "Resumen del día"
+                        titulo = "Resumen del día",
+                        kcalGoal = userPrefs.kcalGoal.value,
+                        proteinasGoal = userPrefs.proteinasGoal.value,
+                        carbsGoal = userPrefs.carbsGoal.value,
+                        grasasGoal = userPrefs.grasasGoal.value
+                    )
+                }
+
+                item {
+                    WaterTrackerCard(
+                        vasos = diaDetallado.agua,
+                        onUpdate = { nuevosVasos ->
+                            scope.launch {
+                                repository.asegurarDia(fecha)
+                                repository.actualizarDia(com.rafael.dietaapp.data.entities.Dia(fecha, nuevosVasos))
+                            }
+                        }
                     )
                 }
 
@@ -205,6 +268,40 @@ fun DiaScreen(
             onFechaSeleccionada = { nuevaFecha -> onCambiarFecha(nuevaFecha) },
             onDismiss = { mostrarCalendario = false }
         )
+    }
+}
+
+@Composable
+fun WaterTrackerCard(vasos: Int, onUpdate: (Int) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f))
+    ) {
+        Row(
+            Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Hidratación", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("$vasos vasos (${vasos * 250} ml)", style = MaterialTheme.typography.bodyMedium)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { if (vasos > 0) onUpdate(vasos - 1) }) {
+                    Icon(Icons.Default.Remove, contentDescription = "Menos agua")
+                }
+                Icon(
+                    Icons.Default.WaterDrop,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(32.dp)
+                )
+                IconButton(onClick = { onUpdate(vasos + 1) }) {
+                    Icon(Icons.Default.Add, contentDescription = "Más agua")
+                }
+            }
+        }
     }
 }
 

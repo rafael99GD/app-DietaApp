@@ -12,6 +12,12 @@ interface DiaDao {
     @Query("SELECT * FROM dias WHERE fecha = :fecha")
     suspend fun obtenerPorFecha(fecha: String): Dia?
 
+    @Query("SELECT * FROM dias WHERE fecha = :fecha")
+    fun obtenerPorFechaFlow(fecha: String): Flow<Dia?>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertar(dia: Dia)
+
+    @Update
+    suspend fun actualizar(dia: Dia)
 }

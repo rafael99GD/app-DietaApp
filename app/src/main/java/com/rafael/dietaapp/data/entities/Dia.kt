@@ -10,5 +10,6 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "dias")
 data class Dia(
     @PrimaryKey
-    val fecha: String // "2026-06-20"
+    val fecha: String, // "2026-06-20"
+    val agua: Int = 0 // En mililitros o vasos. Usemos vasos (250ml cada uno) o ml. Usemos vasos por simplicidad.
 )

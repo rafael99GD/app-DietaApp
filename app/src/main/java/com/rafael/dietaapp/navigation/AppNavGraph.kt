@@ -29,6 +29,7 @@ fun AppNavGraph(repository: DietaRepository) {
                 onIrAAlimentos = { navController.navigate(Rutas.ALIMENTOS) },
                 onIrARecetas = { navController.navigate(Rutas.RECETAS) },
                 onIrAExtra = { extraId -> navController.navigate(Rutas.extraForm(fecha, extraId)) },
+                onIrAPerfil = { navController.navigate(Rutas.PERFIL) },
                 onCambiarFecha = { nuevaFecha ->
                     navController.navigate(Rutas.dia(nuevaFecha)) {
                         popUpTo(Rutas.DIA) { inclusive = true }
@@ -135,6 +136,10 @@ fun AppNavGraph(repository: DietaRepository) {
                 onVolver = { navController.popBackStack() },
                 onRecetaGuardada = { navController.popBackStack() }
             )
+        }
+
+        composable(Rutas.PERFIL) {
+            PerfilScreen(onVolver = { navController.popBackStack() })
         }
     }
 }

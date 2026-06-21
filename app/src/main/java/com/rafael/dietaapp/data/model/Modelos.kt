@@ -44,7 +44,8 @@ data class ComidaDetallada(
 data class DiaDetallado(
     val fecha: String,
     val comidas: List<ComidaDetallada>,
-    val extras: List<Extra>
+    val extras: List<Extra>,
+    val agua: Int = 0
 ) {
     val totalExtras: NutrientesTotales
         get() = extras.fold(NutrientesTotales()) { acc, e ->

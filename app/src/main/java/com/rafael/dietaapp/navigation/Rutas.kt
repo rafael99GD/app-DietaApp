@@ -10,6 +10,7 @@ object Rutas {
     const val COMIDA_DETALLE = "comida_detalle/{comidaId}"
     const val EXTRA_FORM = "extra_form/{fecha}?extraId={extraId}"
     const val GUARDAR_RECETA = "guardar_receta/{comidaId}"
+    const val PERFIL = "perfil"
 
     fun dia(fecha: String) = "dia/$fecha"
     fun alimentoForm(id: Long? = null) = if (id != null) "alimento_form?id=$id" else "alimento_form"
