@@ -26,6 +26,10 @@ class MainActivity : ComponentActivity() {
         val repository = app.repository
         val userPrefs = app.userPreferences
 
+        lifecycleScope.launch {
+            repository.limpiarDatosHuerfanos()
+        }
+
         procesarIntent(intent)
 
         setContent {

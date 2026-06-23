@@ -66,6 +66,10 @@ class DietaRepository(
 
     suspend fun actualizarDia(dia: Dia) = diaDao.actualizar(dia)
 
+    suspend fun limpiarDatosHuerfanos() {
+        diaDao.limpiarDiasVacios()
+    }
+
     /** Conjunto de fechas (yyyy-MM-dd) que tienen al menos un dato registrado, para marcar el calendario. */
     fun obtenerFechasConDatos(): Flow<Set<String>> =
         diaDao.obtenerTodos().map { dias -> dias.map { it.fecha }.toSet() }
@@ -97,21 +101,20 @@ class DietaRepository(
     }
 
     private fun obtenerComidaDetallada(comida: Comida): Flow<ComidaDetallada> {
-        val lineasAlimentoFlow = comidaDao.obtenerLineasAlimento(comida.id)
-        val lineasRecetaFlow = comidaDao.obtenerLineasReceta(comida.id)
+        val lineasAlimentoFlow = comidaDao.obtenerLineasAlimentoConInfo(comida.id)
+        val lineasRecetaFlow = comidaDao.obtenerLineasRecetaConInfo(comida.id)
 
         return combine(lineasAlimentoFlow, lineasRecetaFlow) { lineasAl, lineasRec ->
-            Pair(lineasAl, lineasRec)
-        }.map { (lineasAl, lineasRec) ->
-            val lineasAlimentos = lineasAl.mapNotNull { la ->
-                val alimento = alimentoDao.obtenerPorId(la.alimentoId)
-                alimento?.let { LineaAlimento(la.id, it, la.gramos) }
+            val lineasAlimentos = lineasAl.mapNotNull { relacion ->
+                relacion.alimento?.let { LineaAlimento(relacion.linea.id, it, relacion.linea.gramos) }
             }
-            val lineasRecetas = lineasRec.mapNotNull { lr ->
-                val receta = recetaDao.obtenerPorId(lr.recetaId)
-                receta?.let {
+            val lineasRecetas = lineasRec.mapNotNull { relacion ->
+                relacion.receta?.let {
+                    // Aquí seguimos necesitando calcular los totales de la receta.
+                    // Podríamos optimizarlo más si la receta guardara sus totales, 
+                    // pero por ahora el cálculo es rápido.
                     val totalesBase = calcularTotalesReceta(it.id)
-                    LineaReceta(lr.id, it, lr.factor, totalesBase)
+                    LineaReceta(relacion.linea.id, it, relacion.linea.factor, totalesBase)
                 }
             }
             ComidaDetallada(comida, lineasAlimentos, lineasRecetas)
@@ -148,15 +151,15 @@ class DietaRepository(
     /** Obtiene una comida ya resuelta una sola vez (no como Flow), útil para "guardar como receta". */
     suspend fun obtenerComidaDetalladaUnaVez(comidaId: Long): ComidaDetallada? {
         val comida = comidaDao.obtenerPorId(comidaId) ?: return null
-        val lineasAl = comidaDao.obtenerLineasAlimentoSync(comidaId)
-        val lineasRec = comidaDao.obtenerLineasRecetaSync(comidaId)
+        val lineasAl = comidaDao.obtenerLineasAlimentoConInfoSync(comidaId)
+        val lineasRec = comidaDao.obtenerLineasRecetaConInfoSync(comidaId)
 
-        val lineasAlimentos = lineasAl.mapNotNull { la ->
-            alimentoDao.obtenerPorId(la.alimentoId)?.let { LineaAlimento(la.id, it, la.gramos) }
+        val lineasAlimentos = lineasAl.mapNotNull { rel ->
+            rel.alimento?.let { LineaAlimento(rel.linea.id, it, rel.linea.gramos) }
         }
-        val lineasRecetas = lineasRec.mapNotNull { lr ->
-            recetaDao.obtenerPorId(lr.recetaId)?.let {
-                LineaReceta(lr.id, it, lr.factor, calcularTotalesReceta(it.id))
+        val lineasRecetas = lineasRec.mapNotNull { rel ->
+            rel.receta?.let {
+                LineaReceta(rel.linea.id, it, rel.linea.factor, calcularTotalesReceta(it.id))
             }
         }
         return ComidaDetallada(comida, lineasAlimentos, lineasRecetas)
@@ -197,19 +200,19 @@ class DietaRepository(
     suspend fun obtenerTodasLasRecetasDetalladasUnaVez(): List<RecetaDetallada> {
         val recetas = recetaDao.obtenerTodasSync()
         return recetas.map { receta ->
-            val ingredientes = recetaDao.obtenerIngredientesSync(receta.id)
-            val lineas = ingredientes.mapNotNull { ing ->
-                alimentoDao.obtenerPorId(ing.alimentoId)?.let { LineaAlimento(ing.id, it, ing.gramos) }
+            val ingredientes = recetaDao.obtenerIngredientesConInfoSync(receta.id)
+            val lineas = ingredientes.mapNotNull { rel ->
+                rel.alimento?.let { LineaAlimento(rel.linea.id, it, rel.linea.gramos) }
             }
             RecetaDetallada(receta, lineas)
         }
     }
 
     fun obtenerRecetaDetallada(recetaId: Long): Flow<RecetaDetallada> {
-        return recetaDao.obtenerIngredientes(recetaId).map { ingredientes ->
+        return recetaDao.obtenerIngredientesConInfo(recetaId).map { ingredientes ->
             val receta = recetaDao.obtenerPorId(recetaId) ?: Receta(id = recetaId, nombre = "")
-            val lineas = ingredientes.mapNotNull { ing ->
-                alimentoDao.obtenerPorId(ing.alimentoId)?.let { LineaAlimento(ing.id, it, ing.gramos) }
+            val lineas = ingredientes.mapNotNull { rel ->
+                rel.alimento?.let { LineaAlimento(rel.linea.id, it, rel.linea.gramos) }
             }
             RecetaDetallada(receta, lineas)
         }
@@ -217,13 +220,13 @@ class DietaRepository(
 
     /** Calcula los totales nutricionales de una receta completa (factor 1.0), de una sola vez. */
     suspend fun calcularTotalesReceta(recetaId: Long): NutrientesTotales {
-        val ingredientes = recetaDao.obtenerIngredientesSync(recetaId)
-        return ingredientes.fold(NutrientesTotales()) { acc, ing ->
-            val alimento = alimentoDao.obtenerPorId(ing.alimentoId) ?: return@fold acc
+        val ingredientes = recetaDao.obtenerIngredientesConInfoSync(recetaId)
+        return ingredientes.fold(NutrientesTotales()) { acc, rel ->
+            val alimento = rel.alimento ?: return@fold acc
             acc + NutrientesTotales.deAlimento(
                 alimento.kcal, alimento.grasas, alimento.grasasSaturadas,
                 alimento.hidratos, alimento.azucares, alimento.proteinas, alimento.sal,
-                ing.gramos
+                rel.linea.gramos
             )
         }
     }

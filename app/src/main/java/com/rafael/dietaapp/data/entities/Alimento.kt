@@ -1,6 +1,7 @@
 package com.rafael.dietaapp.data.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -8,7 +9,10 @@ import androidx.room.PrimaryKey
  * Todos los valores nutricionales se guardan POR CADA 100g del alimento,
  * tal y como aparece en la tabla nutricional de cualquier producto.
  */
-@Entity(tableName = "alimentos")
+@Entity(
+    tableName = "alimentos",
+    indices = [Index(value = ["nombre"])]
+)
 data class Alimento(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

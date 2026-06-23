@@ -1,6 +1,7 @@
 package com.rafael.dietaapp.data.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -8,7 +9,10 @@ import androidx.room.PrimaryKey
  * (se guardan "cacheados" para no tener que recalcular cada vez, aunque también
  * podrían derivarse de RecetaAlimento + Alimento).
  */
-@Entity(tableName = "recetas")
+@Entity(
+    tableName = "recetas",
+    indices = [Index(value = ["nombre"])]
+)
 data class Receta(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

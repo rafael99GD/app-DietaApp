@@ -27,6 +27,14 @@ interface RecetaDao {
 
     // --- Ingredientes de la receta ---
 
+    @Transaction
+    @Query("SELECT * FROM receta_alimentos WHERE recetaId = :recetaId")
+    fun obtenerIngredientesConInfo(recetaId: Long): Flow<List<com.rafael.dietaapp.data.entities.RecetaAlimentoRelacion>>
+
+    @Transaction
+    @Query("SELECT * FROM receta_alimentos WHERE recetaId = :recetaId")
+    suspend fun obtenerIngredientesConInfoSync(recetaId: Long): List<com.rafael.dietaapp.data.entities.RecetaAlimentoRelacion>
+
     @Query("SELECT * FROM receta_alimentos WHERE recetaId = :recetaId")
     fun obtenerIngredientes(recetaId: Long): Flow<List<RecetaAlimento>>
 

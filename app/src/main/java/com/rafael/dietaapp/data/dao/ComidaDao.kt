@@ -25,6 +25,14 @@ interface ComidaDao {
 
     // --- Líneas de alimentos sueltos dentro de una comida ---
 
+    @Transaction
+    @Query("SELECT * FROM comida_alimentos WHERE comidaId = :comidaId")
+    fun obtenerLineasAlimentoConInfo(comidaId: Long): Flow<List<com.rafael.dietaapp.data.entities.ComidaAlimentoRelacion>>
+
+    @Transaction
+    @Query("SELECT * FROM comida_alimentos WHERE comidaId = :comidaId")
+    suspend fun obtenerLineasAlimentoConInfoSync(comidaId: Long): List<com.rafael.dietaapp.data.entities.ComidaAlimentoRelacion>
+
     @Query("SELECT * FROM comida_alimentos WHERE comidaId = :comidaId")
     fun obtenerLineasAlimento(comidaId: Long): Flow<List<ComidaAlimento>>
 
@@ -41,6 +49,14 @@ interface ComidaDao {
     suspend fun eliminarLineaAlimento(linea: ComidaAlimento)
 
     // --- Líneas de recetas dentro de una comida ---
+
+    @Transaction
+    @Query("SELECT * FROM comida_recetas WHERE comidaId = :comidaId")
+    fun obtenerLineasRecetaConInfo(comidaId: Long): Flow<List<com.rafael.dietaapp.data.entities.ComidaRecetaRelacion>>
+
+    @Transaction
+    @Query("SELECT * FROM comida_recetas WHERE comidaId = :comidaId")
+    suspend fun obtenerLineasRecetaConInfoSync(comidaId: Long): List<com.rafael.dietaapp.data.entities.ComidaRecetaRelacion>
 
     @Query("SELECT * FROM comida_recetas WHERE comidaId = :comidaId")
     fun obtenerLineasReceta(comidaId: Long): Flow<List<ComidaReceta>>

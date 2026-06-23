@@ -20,4 +20,17 @@ interface DiaDao {
 
     @Update
     suspend fun actualizar(dia: Dia)
+
+    @Delete
+    suspend fun eliminar(dia: Dia)
+
+    /** Elimina días que no tienen ni comidas ni extras para ahorrar espacio, 
+     * aunque en SQLite esto es casi despreciable. */
+    @Query("""
+        DELETE FROM dias 
+        WHERE fecha NOT IN (SELECT DISTINCT diaFecha FROM comidas)
+          AND fecha NOT IN (SELECT DISTINCT diaFecha FROM extras)
+          AND agua = 0
+    """)
+    suspend fun limpiarDiasVacios()
 }
