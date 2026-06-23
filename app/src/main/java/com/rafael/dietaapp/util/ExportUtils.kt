@@ -13,48 +13,81 @@ import java.io.File
 object ExportUtils {
 
     fun compartirReceta(context: Context, receta: RecetaDetallada) {
-        val json = JSONObject().apply {
-            put("tipo", "RECETA")
-            put("nombre", receta.receta.nombre)
-            put("emoji", receta.receta.emoji)
-            put("notas", receta.receta.notas)
-            
-            val ingredientesJson = JSONArray()
-            receta.ingredientes.forEach { linea ->
-                val ing = JSONObject().apply {
-                    put("nombre", linea.alimento.nombre)
-                    put("emoji", linea.alimento.emoji)
-                    put("gramos", linea.gramos)
-                    put("kcal", linea.alimento.kcal)
-                    put("proteinas", linea.alimento.proteinas)
-                    put("hidratos", linea.alimento.hidratos)
-                    put("grasas", linea.alimento.grasas)
-                    put("grasasSaturadas", linea.alimento.grasasSaturadas)
-                    put("azucares", linea.alimento.azucares)
-                    put("sal", linea.alimento.sal)
+        compartirRecetas(context, listOf(receta))
+    }
+
+    fun compartirRecetas(context: Context, recetas: List<RecetaDetallada>) {
+        val root = JSONObject().apply {
+            put("tipo", "MULTIPLE_RECETAS")
+            val array = JSONArray()
+            recetas.forEach { receta ->
+                val rJson = JSONObject().apply {
+                    put("nombre", receta.receta.nombre)
+                    put("emoji", receta.receta.emoji)
+                    put("notas", receta.receta.notas)
+                    
+                    val ingredientesJson = JSONArray()
+                    receta.ingredientes.forEach { linea ->
+                        val ing = JSONObject().apply {
+                            put("nombre", linea.alimento.nombre)
+                            put("emoji", linea.alimento.emoji)
+                            put("gramos", linea.gramos)
+                            put("kcal", linea.alimento.kcal)
+                            put("proteinas", linea.alimento.proteinas)
+                            put("hidratos", linea.alimento.hidratos)
+                            put("grasas", linea.alimento.grasas)
+                            put("grasasSaturadas", linea.alimento.grasasSaturadas)
+                            put("azucares", linea.alimento.azucares)
+                            put("sal", linea.alimento.sal)
+                        }
+                        ingredientesJson.put(ing)
+                    }
+                    put("ingredientes", ingredientesJson)
                 }
-                ingredientesJson.put(ing)
+                array.put(rJson)
             }
-            put("ingredientes", ingredientesJson)
+            put("recetas", array)
         }
         
-        compartirJson(context, json, "receta_${receta.receta.nombre.replace(" ", "_")}.dieta")
+        val nombreArchivo = if (recetas.size == 1) 
+            "receta_${recetas[0].receta.nombre.replace(" ", "_")}.dieta"
+        else 
+            "recetas_mi_dieta.dieta"
+            
+        compartirJson(context, root, nombreArchivo)
     }
 
     fun compartirAlimento(context: Context, alimento: Alimento) {
-        val json = JSONObject().apply {
-            put("tipo", "ALIMENTO")
-            put("nombre", alimento.nombre)
-            put("emoji", alimento.emoji)
-            put("kcal", alimento.kcal)
-            put("proteinas", alimento.proteinas)
-            put("hidratos", alimento.hidratos)
-            put("grasas", alimento.grasas)
-            put("grasasSaturadas", alimento.grasasSaturadas)
-            put("azucares", alimento.azucares)
-            put("sal", alimento.sal)
+        compartirAlimentos(context, listOf(alimento))
+    }
+
+    fun compartirAlimentos(context: Context, alimentos: List<Alimento>) {
+        val root = JSONObject().apply {
+            put("tipo", "MULTIPLE_ALIMENTOS")
+            val array = JSONArray()
+            alimentos.forEach { alimento ->
+                val aJson = JSONObject().apply {
+                    put("nombre", alimento.nombre)
+                    put("emoji", alimento.emoji)
+                    put("kcal", alimento.kcal)
+                    put("proteinas", alimento.proteinas)
+                    put("hidratos", alimento.hidratos)
+                    put("grasas", alimento.grasas)
+                    put("grasasSaturadas", alimento.grasasSaturadas)
+                    put("azucares", alimento.azucares)
+                    put("sal", alimento.sal)
+                }
+                array.put(aJson)
+            }
+            put("alimentos", array)
         }
-        compartirJson(context, json, "alimento_${alimento.nombre.replace(" ", "_")}.dieta")
+
+        val nombreArchivo = if (alimentos.size == 1)
+            "alimento_${alimentos[0].nombre.replace(" ", "_")}.dieta"
+        else
+            "alimentos_mi_dieta.dieta"
+
+        compartirJson(context, root, nombreArchivo)
     }
 
     private fun compartirJson(context: Context, json: JSONObject, fileName: String) {
@@ -68,13 +101,12 @@ object ExportUtils {
         )
 
         val intent = Intent(Intent.ACTION_SEND).apply {
-            // Usamos un MIME type que Android suele asociar con "archivos" para forzar opciones de guardado
-            type = "*/*" 
+            // Cambiamos a un tipo MIME más específico para ayudar a Android
+            type = "application/octet-stream" 
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         
-        // Creamos el chooser, Android 10+ suele incluir "Guardar en Drive" o "Files" automáticamente con type */*
         context.startActivity(Intent.createChooser(intent, "Compartir o Guardar archivo .dieta"))
     }
 }

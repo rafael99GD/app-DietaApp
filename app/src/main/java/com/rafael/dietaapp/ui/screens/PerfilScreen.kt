@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.rafael.dietaapp.DietaApplication
 import com.rafael.dietaapp.R
+import com.rafael.dietaapp.util.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +28,8 @@ fun PerfilScreen(onVolver: () -> Unit) {
     val context = LocalContext.current
     val app = context.applicationContext as DietaApplication
     val userPrefs = app.userPreferences
+
+    val theme by userPrefs.theme
 
     var kcalGoal by remember { mutableStateOf(userPrefs.kcalGoal.value.toString()) }
     var proteinasGoal by remember { mutableStateOf(userPrefs.proteinasGoal.value.toString()) }
@@ -66,14 +69,32 @@ fun PerfilScreen(onVolver: () -> Unit) {
             
             Text("Ajustes de Usuario", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             
+            // Sección de Tema
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    val currentTheme by userPrefs.theme
+                    Text("Tema de la aplicación", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ThemeButton("Claro", com.rafael.dietaapp.util.AppTheme.LIGHT, currentTheme, Modifier.weight(1f)) { userPrefs.saveTheme(it) }
+                        ThemeButton("Oscuro", com.rafael.dietaapp.util.AppTheme.DARK, currentTheme, Modifier.weight(1f)) { userPrefs.saveTheme(it) }
+                        ThemeButton("Sistema", com.rafael.dietaapp.util.AppTheme.SYSTEM, currentTheme, Modifier.weight(1f)) { userPrefs.saveTheme(it) }
+                    }
+                }
+            }
+
             Text(
-                "Establece tus objetivos diarios para ver tu progreso en la pantalla principal.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                "Objetivos Diarios",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth()
             )
-            
-            Spacer(Modifier.height(8.dp))
             
             GoalField("Calorías diarias (kcal)", kcalGoal) { kcalGoal = it }
             GoalField("Proteínas (g)", proteinasGoal) { proteinasGoal = it }
@@ -100,6 +121,28 @@ fun PerfilScreen(onVolver: () -> Unit) {
                 Text("Guardar Objetivos")
             }
         }
+    }
+}
+
+@Composable
+fun ThemeButton(
+    label: String,
+    themeValue: com.rafael.dietaapp.util.AppTheme,
+    currentTheme: com.rafael.dietaapp.util.AppTheme,
+    modifier: Modifier = Modifier,
+    onClick: (com.rafael.dietaapp.util.AppTheme) -> Unit
+) {
+    val isSelected = themeValue == currentTheme
+    OutlinedButton(
+        onClick = { onClick(themeValue) },
+        modifier = modifier,
+        colors = if (isSelected) 
+            ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
+        else 
+            ButtonDefaults.outlinedButtonColors(),
+        border = if (isSelected) null else ButtonDefaults.outlinedButtonBorder
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
 

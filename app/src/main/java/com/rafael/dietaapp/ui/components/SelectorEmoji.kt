@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,18 +19,28 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 
 val EMOJIS_COMIDA = listOf(
-    "🍎", "🍌", "🍊", "🍇", "🍓", "🍉", "🍍", "🥑", "🍅", "🥕",
-    "🥦", "🌽", "🥔", "🍞", "🥖", "🧀", "🥚", "🥩", "🍗", "🍖",
-    "🥓", "🍔", "🍕", "🌭", "🌮", "🌯", "🥗", "🍝", "🍜", "🍲",
-    "🍛", "🍣", "🍱", "🍤", "🍙", "🍚", "🥐", "🥯", "🥞", "🧇",
-    "🍩", "🍪", "🎂", "🍰", "🧁", "🍫", "🍬", "🍭", "🍦", "🍨",
-    "🥛", "☕", "🍵", "🧃", "🥤", "🍷", "🍺", "🥜", "🌰", "🍯"
+    // Frutas
+    "🍎", "🍏", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝",
+    // Verduras
+    "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🫑", "🌽", "🥕", "🫒", "🧄", "🧅", "🍄", "🥜", "🫘", "🌰",
+    // Panadería y Cereales
+    "🍞", "🥐", "🥖", "🫓", "🥨", "🥯", "🥞", "🧇", "🧀", "🍖", "🍗", "🥩", "🥓", "🍔", "🍟", "🍕", "🌭", "🥪", "🌮", "🌯", "🫔", "🥙", "🧆", "🍳", "🥘", "🍲", "🫕", "🥣", "🥗", "🍿", "🧈", "🧂", "🥫",
+    // Comida Oriental
+    "🍱", "🍘", "🍙", "🍚", "🍛", "🍜", "🍝", "🍠", "🍢", "🍣", "🍤", "🍥", "🥮", "🍡", "🥟", "🥠", "🥡",
+    // Dulces y Postres
+    "🍦", "🍧", "🍨", "🍩", "🍪", "🎂", "🍰", "🧁", "🥧", "🍫", "🍬", "🍭", "🍮", "🍯",
+    // Bebidas
+    "🍼", "🥛", "☕", "🫖", "🍵", "🍶", "🍾", "🍷", "🍸", "🍹", "🍺", "🍻", "🥂", "🥃", "🥤", "🧋", "🧃", "🧉", "🧊"
 )
 
 @Composable
@@ -91,24 +102,50 @@ fun SelectorEmojiOImagen(
                     Text("O elige un emoticono:", style = MaterialTheme.typography.labelLarge)
                     Spacer(Modifier.height(8.dp))
 
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(6),
-                        modifier = Modifier.heightIn(max = 280.dp)
-                    ) {
-                        items(EMOJIS_COMIDA) { emoji ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        onEmojiSeleccionado(emoji)
-                                        onImagenSeleccionada(null)
-                                        mostrarSelector = false
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(emoji, style = MaterialTheme.typography.titleLarge)
+                    val gridState = rememberLazyGridState()
+                    val scrollbarColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+
+                    Box(modifier = Modifier.heightIn(max = 280.dp)) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(6),
+                            state = gridState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .drawWithContent {
+                                    drawContent()
+                                    // Dibujar barra de scroll
+                                    val layoutInfo = gridState.layoutInfo
+                                    val viewportSize = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+                                    val totalItemsCount = layoutInfo.totalItemsCount
+                                    if (totalItemsCount > 0) {
+                                        val itemsInViewport = layoutInfo.visibleItemsInfo.size
+                                        val scrollbarHeight = (itemsInViewport.toFloat() / totalItemsCount.toFloat()) * size.height
+                                        val firstVisibleItemIndex = gridState.firstVisibleItemIndex
+                                        val scrollbarOffsetY = (firstVisibleItemIndex.toFloat() / totalItemsCount.toFloat()) * size.height
+                                        
+                                        drawRect(
+                                            color = scrollbarColor,
+                                            topLeft = Offset(size.width - 4.dp.toPx(), scrollbarOffsetY),
+                                            size = Size(4.dp.toPx(), scrollbarHeight)
+                                        )
+                                    }
+                                }
+                        ) {
+                            items(EMOJIS_COMIDA) { emoji ->
+                                Box(
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            onEmojiSeleccionado(emoji)
+                                            onImagenSeleccionada(null)
+                                            mostrarSelector = false
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(emoji, style = MaterialTheme.typography.titleLarge)
+                                }
                             }
                         }
                     }

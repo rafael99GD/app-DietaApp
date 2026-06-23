@@ -177,7 +177,33 @@ class DietaRepository(
 
     fun obtenerRecetas(): Flow<List<Receta>> = recetaDao.obtenerTodas()
 
+    /** Devuelve la lista de recetas junto con sus kcal totales calculadas. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun obtenerRecetasConDetalle(): Flow<List<RecetaDetallada>> {
+        return recetaDao.obtenerTodas().flatMapLatest { recetas ->
+            if (recetas.isEmpty()) {
+                kotlinx.coroutines.flow.flowOf(emptyList())
+            } else {
+                val flows = recetas.map { receta ->
+                    obtenerRecetaDetallada(receta.id)
+                }
+                combine(flows) { it.toList() }
+            }
+        }
+    }
+
     suspend fun obtenerReceta(id: Long): Receta? = recetaDao.obtenerPorId(id)
+
+    suspend fun obtenerTodasLasRecetasDetalladasUnaVez(): List<RecetaDetallada> {
+        val recetas = recetaDao.obtenerTodasSync()
+        return recetas.map { receta ->
+            val ingredientes = recetaDao.obtenerIngredientesSync(receta.id)
+            val lineas = ingredientes.mapNotNull { ing ->
+                alimentoDao.obtenerPorId(ing.alimentoId)?.let { LineaAlimento(ing.id, it, ing.gramos) }
+            }
+            RecetaDetallada(receta, lineas)
+        }
+    }
 
     fun obtenerRecetaDetallada(recetaId: Long): Flow<RecetaDetallada> {
         return recetaDao.obtenerIngredientes(recetaId).map { ingredientes ->

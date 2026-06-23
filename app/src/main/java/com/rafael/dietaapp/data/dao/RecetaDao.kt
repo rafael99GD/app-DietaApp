@@ -10,6 +10,9 @@ interface RecetaDao {
     @Query("SELECT * FROM recetas ORDER BY nombre ASC")
     fun obtenerTodas(): Flow<List<Receta>>
 
+    @Query("SELECT * FROM recetas ORDER BY nombre ASC")
+    suspend fun obtenerTodasSync(): List<Receta>
+
     @Query("SELECT * FROM recetas WHERE id = :id")
     suspend fun obtenerPorId(id: Long): Receta?
 
