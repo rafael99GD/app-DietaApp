@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.rafael.dietaapp.data.entities.Comida
 import com.rafael.dietaapp.data.entities.ComidaAlimento
@@ -329,7 +330,7 @@ fun SelectorAlimentoDialog(
                     val alimento = alimentos.find { it.id == alimentoSeleccionado }
                     Text("${alimento?.emoji} ${alimento?.nombre}", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(12.dp))
-                    CampoNumerico(gramos, { gramos = it }, "Cantidad usada")
+                    CampoNumerico(gramos, { gramos = it }, "Cantidad usada", imeAction = ImeAction.Done)
                 }
             }
         },
@@ -390,7 +391,7 @@ fun SelectorRecetaDialog(
                     Spacer(Modifier.height(12.dp))
                     Text("¿Cuántas raciones de la receta? (1 = la receta completa)", style = MaterialTheme.typography.labelMedium)
                     Spacer(Modifier.height(4.dp))
-                    CampoNumerico(factor, { factor = it }, "Cantidad", sufijo = "x")
+                    CampoNumerico(factor, { factor = it }, "Cantidad", sufijo = "x", imeAction = ImeAction.Done)
                 }
             }
         },

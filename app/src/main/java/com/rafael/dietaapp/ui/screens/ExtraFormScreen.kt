@@ -2,6 +2,8 @@ package com.rafael.dietaapp.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -10,6 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.rafael.dietaapp.data.entities.Extra
 import com.rafael.dietaapp.data.repository.DietaRepository
@@ -41,6 +46,7 @@ fun ExtraFormScreen(
     var sal by remember { mutableStateOf("") }
     var extraOriginal by remember { mutableStateOf<Extra?>(null) }
     var cargado by remember { mutableStateOf(!esEdicion) }
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(extraId) {
         if (extraId != null) {
@@ -100,6 +106,7 @@ fun ExtraFormScreen(
             Modifier
                 .padding(padding)
                 .fillMaxSize()
+                .imePadding() // Añade espacio dinámico según el teclado
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -124,18 +131,20 @@ fun ExtraFormScreen(
                 onValueChange = { nombre = it },
                 label = { Text("¿Qué has comido?") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
                 modifier = Modifier.fillMaxWidth()
             )
 
             Text("Estimación nutricional (total de lo comido, no por 100g)", style = MaterialTheme.typography.titleMedium)
 
-            CampoNumerico(kcal, { kcal = it }, "Kcal", sufijo = "kcal")
-            CampoNumerico(grasas, { grasas = it }, "Grasas")
-            CampoNumerico(grasasSaturadas, { grasasSaturadas = it }, "  de las cuales saturadas")
-            CampoNumerico(hidratos, { hidratos = it }, "Hidratos de carbono")
-            CampoNumerico(azucares, { azucares = it }, "  de los cuales azúcares")
-            CampoNumerico(proteinas, { proteinas = it }, "Proteínas")
-            CampoNumerico(sal, { sal = it }, "Sal")
+            CampoNumerico(kcal, { kcal = it }, "Kcal", sufijo = "kcal", onAction = { focusManager.moveFocus(FocusDirection.Down) })
+            CampoNumerico(grasas, { grasas = it }, "Grasas", onAction = { focusManager.moveFocus(FocusDirection.Down) })
+            CampoNumerico(grasasSaturadas, { grasasSaturadas = it }, "  de las cuales saturadas", onAction = { focusManager.moveFocus(FocusDirection.Down) })
+            CampoNumerico(hidratos, { hidratos = it }, "Hidratos de carbono", onAction = { focusManager.moveFocus(FocusDirection.Down) })
+            CampoNumerico(azucares, { azucares = it }, "  de los cuales azúcares", onAction = { focusManager.moveFocus(FocusDirection.Down) })
+            CampoNumerico(proteinas, { proteinas = it }, "Proteínas", onAction = { focusManager.moveFocus(FocusDirection.Down) })
+            CampoNumerico(sal, { sal = it }, "Sal", imeAction = ImeAction.Done, onAction = { focusManager.clearFocus() })
 
             Spacer(Modifier.height(8.dp))
 
@@ -169,7 +178,8 @@ fun ExtraFormScreen(
                 Text(if (esEdicion) "Guardar cambios" else "Añadir")
             }
 
-            Spacer(Modifier.height(24.dp))
+            // Espacio extra al final para que los campos de abajo puedan subir por encima del teclado
+            Spacer(Modifier.height(300.dp))
         }
     }
 }
