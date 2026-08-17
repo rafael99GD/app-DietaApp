@@ -6,7 +6,7 @@ Aplicación Android nativa para registrar y controlar tu alimentación diaria. P
 
 ## 📱 Capturas de pantalla
 
-> *(Añade aquí capturas cuando quieras: arrástralas al editor de GitHub o usa la sintaxis `![descripción](ruta/imagen.png)`)*
+> `![descripción](ruta/imagen.png)`)*
 
 ---
 
